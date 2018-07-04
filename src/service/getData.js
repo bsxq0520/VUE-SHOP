@@ -37,3 +37,25 @@ export const searchPlace = (cityId, value) => fetch('/api/v1/pois', {
  */
 
 export const getSiteAddress = geohash => fetch('/api/v2/pois/' + geohash)
+
+/**
+ * 获取site页banner食品分类
+ */
+
+export const siteFoodTypes = geohash => fetch('/api/v2/index_entry', {
+  geohash,
+  group_type: '1',
+  'flags[]': 'F'
+})
+
+/**
+ * 获取商铺列表
+ */
+
+export const shopList = (latitude, longitude) => {
+  let data = {
+    latitude,
+    longitude
+  }
+  return fetch('/api/shopping/restaurants', data)
+}

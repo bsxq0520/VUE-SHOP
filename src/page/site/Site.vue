@@ -10,7 +10,7 @@
       <div class="swiper-container" v-if="foodTypes.length">
         <div class="swiper-wrapper">
           <div class="swiper-slide" v-for="(item,key) of foodTypes" :key="key">
-            <router-link class="link-to-food" :to="'/home'" v-for="foodItem in item" :key="foodItem.id">
+            <router-link class="link-to-food" :to="{path: '/foodTypes',query:{geohash,title:foodItem.title}}" v-for="foodItem in item" :key="foodItem.id">
               <figure>
                 <img :src="imgBaseUrl + foodItem.image_url" alt="">
                 <figcaption class="ellipsis">{{foodItem.title}}</figcaption>
@@ -25,9 +25,9 @@
 
     <div class="shop-list-container">
       <h4>附近商铺</h4>
-      <div class="shop-list">
+      <!-- <div class="shop-list"> -->
         <shop-list v-if="geohash" :geohash="geohash"></shop-list>
-      </div>
+      <!-- </div> -->
     </div>
   </div>
 </template>

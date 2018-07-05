@@ -4,6 +4,7 @@ import Router from 'vue-router'
 import Home from '@/page/home/Home'
 import City from '@/page/city/City'
 import Site from '@/page/site/Site'
+import FoodTypes from '@/page/foodTypes/FoodTypes'
 
 Vue.use(Router)
 
@@ -28,6 +29,11 @@ export default new Router({
     {
       path: '/site',
       component: Site
+    },
+    // 选择商品类型页
+    {
+      path: '/foodTypes',
+      component: FoodTypes
     }
   ]
 })

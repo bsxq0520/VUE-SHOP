@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="shop-list">
     <ul v-if="shopListArr.length">
       <router-link class="list-item" :to="'/home'" tag="li" v-for="item of shopListArr" :key="item.id">
         <section>
@@ -59,6 +59,9 @@ export default {
     opacity: 0;
   }
 
+  .shop-list {
+    background-color: $fc;
+  }
   .list-item {
     display: flex;
     padding: .6rem .4rem;

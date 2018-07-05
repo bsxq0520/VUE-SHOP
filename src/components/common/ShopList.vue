@@ -11,22 +11,28 @@
         </section>
       </router-link>
     </ul>
+
+    <transition name="loading">
+      <loading v-show="showLoading"></loading>
+    </transition>
   </div>
 </template>
 
 <script>
 import {shopList} from '../../service/getData'
 import {imgBaseUrl} from '../../config/env.js'
+import Loading from './Loading'
 export default {
   data () {
     return {
+      showLoading: true, // 显示加载动画
       imgBaseUrl, // 图片头部地址
       shopListArr: [] // 商铺列表
     }
   },
   props: ['geohash'],
   components: {
-
+    Loading
   },
   mounted () {
     this.initData()
@@ -36,6 +42,7 @@ export default {
       let latitude = this.geohash.split(',')[0]
       let longitude = this.geohash.split(',')[1]
       let res = await shopList(latitude, longitude)
+      this.showLoading = false
       this.shopListArr = [...res]
     }
   }
@@ -44,6 +51,14 @@ export default {
 
 <style lang="scss" scoped>
 @import '../../style/mixin';
+
+  .loading-enter-active, .loading-leave-active {
+    transition: opacity 1s;
+  }
+  .loading-enter,.loading-leave-to {
+    opacity: 0;
+  }
+
   .list-item {
     display: flex;
     padding: .6rem .4rem;

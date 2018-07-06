@@ -52,10 +52,11 @@ export const siteFoodTypes = geohash => fetch('/api/v2/index_entry', {
  * 获取商铺列表
  */
 
-export const shopList = (latitude, longitude) => {
+export const shopList = (latitude, longitude, sortByType) => {
   let data = {
-    latitude,
-    longitude
+    latitude, // 纬度
+    longitude, // 经度
+    order_by: sortByType // 分类排序
   }
   return fetch('/api/shopping/restaurants', data)
 }

@@ -30,7 +30,7 @@ export default {
       shopListArr: [] // 商铺列表
     }
   },
-  props: ['geohash'],
+  props: ['geohash', 'sortByType'],
   components: {
     Loading
   },
@@ -44,6 +44,20 @@ export default {
       let res = await shopList(latitude, longitude)
       this.showLoading = false
       this.shopListArr = [...res]
+    },
+    async refreshData () {
+      this.showLoading = true
+      let latitude = this.geohash.split(',')[0]
+      let longitude = this.geohash.split(',')[1]
+      let res = await shopList(latitude, longitude, this.sortByType)
+      this.showLoading = false
+      this.shopListArr = [...res]
+    }
+  },
+  watch: {
+    // 类型排序
+    sortByType: function (params) {
+      this.refreshData()
     }
   }
 }

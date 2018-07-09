@@ -1,7 +1,7 @@
 <template>
   <div class="shop-list">
     <ul v-if="shopListArr.length">
-      <router-link class="list-item" :to="'/home'" tag="li" v-for="item of shopListArr" :key="item.id">
+      <router-link class="list-item" :to="{path: 'shop', query:{geohash, id: item.id}}" tag="li" v-for="item of shopListArr" :key="item.id">
         <section>
           <img class="shop-img" :src="imgBaseUrl + item.image_path">
         </section>

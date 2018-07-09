@@ -60,3 +60,11 @@ export const shopList = (latitude, longitude, sortByType) => {
   }
   return fetch('/api/shopping/restaurants', data)
 }
+
+/**
+ * 获取shop页商品分类
+ * @param {*} restId
+ */
+export const shopFoodTypes = restId => fetch('/api/shopping/v2/menu', {
+  restaurant_id: restId
+})

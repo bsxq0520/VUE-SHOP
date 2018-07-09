@@ -5,6 +5,7 @@ import Home from '@/page/home/Home'
 import City from '@/page/city/City'
 import Site from '@/page/site/Site'
 import FoodTypes from '@/page/foodTypes/FoodTypes'
+import Shop from '@/page/shop/Shop'
 
 Vue.use(Router)
 
@@ -34,6 +35,10 @@ export default new Router({
     {
       path: '/foodTypes',
       component: FoodTypes
+    },
+    {
+      path: '/shop',
+      component: Shop
     }
   ]
 })

@@ -34,27 +34,60 @@
                 <span>{{item.description}}</span>
               </header>
               <section class="foods-detail" v-for="(foods,foodsIndex) of item.foods" :key="foodsIndex">
-                <section>
-                  <img class="foods-url" :src="imgBaseUrl + foods.image_path">
-                </section>
-                <section class="foods-content">
-                  <h3>{{foods.name}}</h3>
-                  <p>{{foods.description}}</p>
-                  <p>月售{{foods.month_sales}}份</p>
-                  <div>
-                    <section>
-                      <span>¥</span>
-                      <span>{{foods.specfoods[0].price}}</span>
-                      <span v-if="foods.specifications.length">起</span>
-                    </section>
-                  </div>
-                </section>
+                <div class="foods-detail-item">
+                  <section class="foods-pic">
+                    <img class="foods-url" :src="imgBaseUrl + foods.image_path">
+                  </section>
+                  <section class="foods-content">
+                    <h3>{{foods.name}}</h3>
+                    <p>{{foods.description}}</p>
+                    <p>月售{{foods.month_sales}}份</p>
+                    <div class="foods-sub">
+                      <section class="food-price">
+                        <span>¥</span>
+                        <span>{{foods.specfoods[0].price}}</span>
+                        <span v-if="foods.specifications.length">起</span>
+                      </section>
+
+                      <buy-cart :foods="foods" @showMoveDot="showMoveDotFun"></buy-cart>
+                    </div>
+                  </section>
+                </div>
               </section>
             </li>
           </ul>
         </div>
       </div>
+
+      <div class="shop-cart-container">
+        <section class="cart-ico-num">
+          <div class="cart-ico-container">
+            <svg class="cart-ico">
+              <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#cart-icon"></use>
+            </svg>
+          </div>
+
+          <div class="cart-num">
+            <div>¥0.00</div>
+            <div>配送费¥20</div>
+          </div>
+        </section>
+        <section class="payFor"></section>
+      </div>
     </section>
+
+    <transition
+    appear
+    @before-enter="beforeEnter"
+    @after-enter="afterEnter"
+    v-for="(item,index) of showMoveDot"
+    :key="index">
+      <span class="moveDot" v-if="item">
+        <svg class="move_liner">
+          <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#cart-add"></use>
+        </svg>
+      </span>
+    </transition>
 
     <loading v-show="showLoading"></loading>
   </div>
@@ -64,6 +97,7 @@
 import {shopFoodTypes} from '../../service/getData'
 import {getImgPath} from '../../components/common/mixin'
 import {imgBaseUrl} from '../../config/env'
+import BuyCart from '../../components/common/BuyCart'
 import Loading from '../../components/common/Loading'
 import BScroll from 'better-scroll'
 export default {
@@ -78,7 +112,12 @@ export default {
       shopId: null, // 商铺id
       menuScroll: null, //
       foodScroll: null, // 食品列表scroll
-      imgBaseUrl
+      imgBaseUrl,
+      cartFoodList: [], // 购物车商品列表
+      dotLeft: 0, // 当前小球在网页中的绝对left值
+      dotBottom: 0, // 当前小球在网页中的绝对bottom值
+      showMoveDot: [], // 控制下落的小圆点显示隐藏
+      windowHeight: null // 屏幕的高度
     }
   },
   computed: {
@@ -89,9 +128,11 @@ export default {
   },
   mounted () {
     this.initData()
+    this.windowHeight = window.innerHeight
   },
   components: {
-    Loading
+    Loading,
+    BuyCart
   },
   mixins: [getImgPath],
   methods: {
@@ -147,11 +188,23 @@ export default {
         this.menuIndexChange = true
       })
     },
-    _followScroll () {
-      const wrapMenuHeight = this.$refs.menuList.clientHeight
-      let menuList = this.$refs.menuList.querySelectorAll('.active')
-      let el = menuList[0]
-      this.menuScroll.scrollToElement(el, 300, 0, -(wrapMenuHeight / 2))
+    // 显示下落圆球
+    showMoveDotFun (showMoveDot, dotLeft, dotBottom) {
+      this.dotLeft = dotLeft
+      this.dotBottom = dotBottom
+      this.showMoveDot = [...this.showMoveDot, ...showMoveDot]
+    },
+    beforeEnter (el) {
+      el.style.transform = `translate3d(0,${23 + this.dotBottom - this.windowHeight}px,0)`
+      el.children[0].style.transform = `translate3d(${this.dotLeft - 26}px,0,0)`
+      el.children[0].style.opacity = 0
+    },
+    afterEnter (el) {
+      el.style.transform = `translate3d(0,0,0)`
+      el.children[0].style.transform = `translate3d(0,0,0)`
+      el.style.transition = `transform .55s cubic-bezier(0.3, -0.25, 0.7, 0)`
+      el.children[0].style.transition = `transform .55s linear`
+      el.children[0].style.opacity = 1
     }
   },
   watch: {
@@ -180,6 +233,7 @@ export default {
     }
     .food-container{
       display: flex;
+      padding-bottom: 2rem;
       flex:1;
     }
   }
@@ -224,6 +278,7 @@ export default {
     }
     .menu-right {
       position: relative;
+      overflow-y: auto;
       .foods-header{
         padding: .4rem;
         strong {
@@ -236,24 +291,101 @@ export default {
         }
       }
       .foods-detail{
-        display: flex;
+        position: relative;
+        overflow: hidden;
         padding: .6rem .4rem;
         background-color: $fc;
         border-bottom: .025rem solid $bc;
+
+        .foods-detail-item{
+          display: flex;
+          .foods-content{
+            flex: auto;
+            h3{
+              font-size: .7rem;
+            }
+            p {
+              font-size: .3rem;
+            }
+            .foods-sub{
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+
+              .food-price{
+                span{
+                  font-size: .5rem;
+                }
+              }
+            }
+          }
+        }
+
         .foods-url{
           display: block;
           margin-right: .4rem;
           @include wh(2rem,2rem);
         }
-        .foods-content{
-          h3{
-            font-size: .7rem;
+
+      }
+    }
+  }
+
+  .shop-cart-container{
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    display: flex;
+    @include wh(100%,2rem);
+    background-color: #3d3d3f;
+
+    .cart-ico-num{
+      flex: auto;
+
+      .cart-ico-container{
+        position: absolute;
+        left: .5rem;
+        top: -.7rem;
+        display: flex;
+        padding: .4rem;
+        background-color: #3d3d3f;
+        border-radius: 50%;
+        border: 0.18rem solid #444;
+
+        .cart-ico{
+          @include wh(1.2rem,1.2rem);
+        }
+      }
+
+      .cart-num{
+        margin-left: 3.5rem;
+        padding: .1rem 0;
+        div {
+          color: #fff;
+
+          &:nth-of-type(1) {
+            font-size: .8rem;
+            font-weight: 700;
           }
-          p {
-            font-size: .3rem;
+          &:nth-of-type(2){
+            font-size: .4rem;
           }
         }
       }
+    }
+    .payFor{
+      @include wh(5rem,100%);
+      background-color: #535356;
+    }
+  }
+  .moveDot {
+    position: fixed;
+    left: 26px;
+    bottom: 16px;
+
+    svg {
+      @include wh(.9rem,.9rem);
+      fill: #3190e8
     }
   }
 </style>

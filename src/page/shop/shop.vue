@@ -49,7 +49,7 @@
                         <span v-if="foods.specifications.length">起</span>
                       </section>
 
-                      <buy-cart :foods="foods" @showMoveDot="showMoveDotFun"></buy-cart>
+                      <buy-cart :foods="foods" :shopId="shopId" @showMoveDot="showMoveDotFun"></buy-cart>
                     </div>
                   </section>
                 </div>

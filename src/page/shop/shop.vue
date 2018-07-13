@@ -18,7 +18,7 @@
             <li
             class="menu-left-li"
             :class="{active:index==menuIndex}"
-            v-for="(item, index) of foodTypes"
+            v-for="(item, index) of menuList"
             :key="index"
             @click="chooseMenu(index)">
               <span>{{item.name}}</span>
@@ -28,7 +28,7 @@
 
         <div class="menu-right" ref="menuFoodList">
           <ul>
-            <li v-for="(item, index) of foodTypes" :key="index" ref="foodList">
+            <li v-for="(item, index) of menuList" :key="index" ref="foodList">
               <header class="foods-header">
                 <strong>{{item.name}}</strong>
                 <span>{{item.description}}</span>
@@ -61,14 +61,15 @@
 
       <div class="shop-cart-container">
         <section class="cart-ico-num">
-          <div class="cart-ico-container">
+          <div class="cart-ico-container" :class="{active:totalNum,moveIncart:isIncart}" ref="cartContainer">
             <svg class="cart-ico">
               <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#cart-icon"></use>
             </svg>
+            <span class="cart-totalNum" v-if="totalNum">{{totalNum}}</span>
           </div>
 
           <div class="cart-num">
-            <div>¥0.00</div>
+            <div>¥{{totalPrice}}</div>
             <div>配送费¥20</div>
           </div>
         </section>
@@ -94,12 +95,13 @@
 </template>
 
 <script>
-import {shopFoodTypes} from '../../service/getData'
+import {foodMenu} from '../../service/getData'
 import {getImgPath} from '../../components/common/mixin'
 import {imgBaseUrl} from '../../config/env'
 import BuyCart from '../../components/common/BuyCart'
 import Loading from '../../components/common/Loading'
 import BScroll from 'better-scroll'
+import {mapState} from 'vuex'
 export default {
   data () {
     return {
@@ -107,21 +109,37 @@ export default {
       changeShowType: 'food', // 默认显示类型
       menuIndex: 0, // 已选菜单索引
       menuIndexChange: true, // 解决选中index时，scroll监听事件重复判断设置index的bug
-      foodTypes: [], // 食品分类列表
+      menuList: [], // 食品列表
       shopListTop: [], // 商品列表的高度集合
       shopId: null, // 商铺id
       menuScroll: null, //
       foodScroll: null, // 食品列表scroll
       imgBaseUrl,
-      cartFoodList: [], // 购物车商品列表
       dotLeft: 0, // 当前小球在网页中的绝对left值
       dotBottom: 0, // 当前小球在网页中的绝对bottom值
       showMoveDot: [], // 控制下落的小圆点显示隐藏
-      windowHeight: null // 屏幕的高度
+      windowHeight: null, // 屏幕的高度
+      cartFoodList: [], // 购物车商品列表
+      totalPrice: 0, // 购物车商品总价
+      isIncart: false // 小圆球是否滑入购物车
     }
   },
   computed: {
-
+    ...mapState([
+      'cartList'
+    ]),
+    // 获取当前商铺购物车信息
+    shopCart () {
+      return {...this.cartList[this.shopId]}
+    },
+    // 购物车中商品总数量
+    totalNum () {
+      let num = 0
+      this.cartFoodList.forEach(item => {
+        num += item.num
+      })
+      return num
+    }
   },
   created () {
     this.shopId = this.$route.query.id
@@ -137,14 +155,14 @@ export default {
   mixins: [getImgPath],
   methods: {
     async initData (params) {
-      // 获取商铺食品分类列表
-      this.foodTypes = await shopFoodTypes(this.shopId)
+      // 获取商铺食品列表
+      this.menuList = await foodMenu(this.shopId)
       this.hideLoading()
     },
     hideLoading () {
       this.showLoading = false
     },
-    getFoodTypesHeight () {
+    getFoodListHeight () {
       const listContainer = this.$refs.menuFoodList
       const listArr = Array.from(listContainer.children[0].children)
       listArr.forEach((item, index) => {
@@ -201,19 +219,64 @@ export default {
     },
     afterEnter (el) {
       el.style.transform = `translate3d(0,0,0)`
-      el.children[0].style.transform = `translate3d(0,0,0)`
       el.style.transition = `transform .55s cubic-bezier(0.3, -0.25, 0.7, 0)`
+      el.children[0].style.transform = `translate3d(0,0,0)`
       el.children[0].style.transition = `transform .55s linear`
       el.children[0].style.opacity = 1
+      el.children[0].addEventListener('transitionend', () => {
+        this.listenInCart()
+      })
+    },
+    initCategoryNum () {
+      let cartFoodNum = 0
+      this.cartFoodList = []
+      this.totalPrice = 0
+      this.menuList.forEach((item, index) => {
+        if (this.shopCart && this.shopCart[item.foods[0].category_id]) {
+          Object.keys(this.shopCart[item.foods[0].category_id]).forEach(itemId => {
+            Object.keys(this.shopCart[item.foods[0].category_id][itemId]).forEach(foodId => {
+              let foodItem = this.shopCart[item.foods[0].category_id][itemId][foodId]
+              if (item.type === 1) {
+                this.totalPrice += foodItem.num * foodItem.price
+                if (foodItem.num > 0) {
+                  this.cartFoodList[cartFoodNum] = {}
+                  this.cartFoodList[cartFoodNum].category_id = item.foods[0].category_id
+                  this.cartFoodList[cartFoodNum].item_id = itemId
+                  this.cartFoodList[cartFoodNum].food_id = foodId
+                  this.cartFoodList[cartFoodNum].num = foodItem.num
+                  this.cartFoodList[cartFoodNum].price = foodItem.price
+                  this.cartFoodList[cartFoodNum].name = foodItem.name
+                  this.cartFoodList[cartFoodNum].specs = foodItem.specs
+                  cartFoodNum++
+                }
+              }
+            })
+          })
+        }
+        this.totalPrice = Number(this.totalPrice).toFixed(2)
+      })
+    },
+    // 监听小球是否进入购物车
+    listenInCart () {
+      if (!this.isIncart) {
+        this.isIncart = true
+        this.$refs.cartContainer.addEventListener('animationend', () => {
+          this.isIncart = false
+        })
+      }
     }
   },
   watch: {
     showLoading: function (value) {
       if (!value) {
         this.$nextTick(() => {
-          this.getFoodTypesHeight()
+          this.getFoodListHeight()
+          this.initCategoryNum()
         })
       }
+    },
+    shopCart () {
+      this.initCategoryNum()
     }
   }
 }
@@ -351,9 +414,31 @@ export default {
         background-color: #3d3d3f;
         border-radius: 50%;
         border: 0.18rem solid #444;
+        z-index: 10;
+
+        &.active{
+          background-color: #3190e8;
+        }
+        &.moveIncart {
+          animation: moveIncart .5s ease-in-out;
+        }
 
         .cart-ico{
           @include wh(1.2rem,1.2rem);
+        }
+        .cart-totalNum{
+          position: absolute;
+          top: -.25rem;
+          right: -.25rem;
+          min-width: .7rem;
+          height: .7rem;
+          line-height: .7rem;
+          font-size: .5rem;
+          color: #fff;
+          text-align: center;
+          background-color: #ff461d;
+          border-radius: 50%;
+          border: 0.025rem solid #ff461d;
         }
       }
 
@@ -387,5 +472,13 @@ export default {
       @include wh(.9rem,.9rem);
       fill: #3190e8
     }
+  }
+
+  @keyframes moveIncart {
+    0%   { transform: scale(1) }
+    25%  { transform: scale(.8) }
+    50%  { transform: scale(1.1) }
+    75%  { transform: scale(.9) }
+    100% { transform: scale(1) }
   }
 </style>
